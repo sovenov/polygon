@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>draw.io ERD → текст</title>
+  <style>
+    :root { --bg:#0b0d10; --ink:#e8eaed; --muted:#9aa0a6; --panel:#111418; --accent:#4c8bf5; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui, -apple-system, Segoe UI, Roboto; }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    textarea { width:100%; min-height: 300px; resize: vertical; padding:12px; border-radius:10px; border:1px solid #23272b; background:var(--panel); color:var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { white-space: pre-wrap; word-break: break-word; background:var(--panel); border:1px solid #23272b; border-radius:10px; padding:12px; min-height: 300px; }
+    button { background:var(--accent); border:0; color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; margin:10px 6px 10px 0; }
+    .hint { color:var(--muted); font-size:12px; }
+    .error { color:#ffb4b4; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>draw.io ERD → текст</h2>
+  <div class="hint">Поддержаны оба вида разметки строк: <code>shape=tableRow → partialRectangle</code> и просто <code>partialRectangle</code> как строки. Рёбра читаются из стилей <code>ERone/ERmany</code>, <code>ERoneToMany/ERmandOne</code>.</div>
+  <textarea id="xmlInput" placeholder="Вставьте несжатый XML из draw.io"></textarea>
+  <div>
+    <button onclick="run()">Преобразовать</button>
+    <button onclick="pasteSample()">Пример</button>
+  </div>
+  <pre id="output"></pre>
+</div>
+
+<script>
+const getAttr = (el, name, def="") => el.getAttribute(name) ?? def;
+const decodeEntities = (s) => (s||"").replace(/&(lt|gt|amp|quot|#39);/g, m => ({'&lt;':'<','&gt;':'>','&amp;':'&','&quot;':'"','&#39;':"'" }[m]));
+
+function isFlagsText(t){
+  t = (t||"").trim();
+  return t && /^([A-Z]{2,3}|UN\d+)(\s*,\s*([A-Z]{2,3}|UN\d+))*$/i.test(t);
+}
+function parseFlags(t){
+  const res = { pk:false, fk:false, uniqueGroups:[] };
+  if (!t) return res;
+  for (const raw of t.split(",").map(s=>s.trim()).filter(Boolean)){
+    const u = raw.toUpperCase();
+    if (u==="PK") res.pk=true;
+    else if (u==="FK") res.fk=true;
+    else if (/^UN\d+$/.test(u)) res.uniqueGroups.push(u);
+  }
+  return res;
+}
+
+function parseDrawio(xml){
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const mx = doc.getElementsByTagName("mxGraphModel")[0];
+  if (!mx) throw new Error("mxGraphModel не найден. Экспортируйте несжатый XML.");
+
+  const cells = Array.from(doc.getElementsByTagName("mxCell"));
+  const children = new Map();
+  for (const c of cells){
+    const p = getAttr(c,"parent");
+    if (!children.has(p)) children.set(p, []);
+    children.get(p).push(c);
+  }
+
+  // Таблицы
+  const tables = [];
+  for (const c of cells){
+    if (getAttr(c,"vertex")!=="1") continue;
+    const style = getAttr(c,"style","");
+    if (!/shape=table/.test(style)) continue;
+    const name = decodeEntities(getAttr(c,"value","")).trim();
+    if (!name) continue;
+    tables.push({ id:getAttr(c,"id"), name });
+  }
+
+  const model = { tables:{}, relationships:[] };
+  const rowInfoByRowId = new Map(); // rowId -> {table, column, flags}
+
+  for (const t of tables){
+    const kids = (children.get(t.id) || []);
+    // 1) Вариант с tableRow
+    let rows = kids.filter(r => getAttr(r,"vertex")==="1" && /shape=tableRow/.test(getAttr(r,"style","")));
+    // 2) Фолбэк: иногда строки – это partialRectangle прямо под таблицей
+    if (!rows.length){
+      rows = kids.filter(r => getAttr(r,"vertex")==="1" && /shape=partialRectangle/.test(getAttr(r,"style","")));
+    }
+    // Сортировка по Y, если есть геометрия
+    rows.sort((a,b)=>{
+      const ya = Number(a.getElementsByTagName("mxGeometry")[0]?.getAttribute("y")||"0");
+      const yb = Number(b.getElementsByTagName("mxGeometry")[0]?.getAttribute("y")||"0");
+      return ya - yb;
+    });
+
+    const columns = [];
+    const pkCols = [];
+    const uniqueGroups = new Map();
+
+    for (const row of rows){
+      const rowId = getAttr(row,"id");
+      const rKids = (children.get(rowId) || []);
+      // Вариант с двумя ячейками: слева флаги (partialRectangle), справа имя поля
+      // Берём первую "flags-looking" как флаги, первую другую как имя
+      let flagText = "", colName = "";
+
+      // Поддержим и вариант, где имя поля сидит прямо в самом row.value
+      const rowVal = decodeEntities(getAttr(row,"value","")).trim();
+      if (rowVal && !isFlagsText(rowVal)) colName = rowVal;
+
+      for (const k of rKids){
+        const val = decodeEntities(getAttr(k,"value","")).trim();
+        if (!val) continue;
+        if (!flagText && isFlagsText(val)) { flagText = val; continue; }
+        if (!colName) colName = val;
+      }
+
+      if (!colName) continue;
+
+      const fl = parseFlags(flagText);
+      const col = {
+        name: colName,
+        type: "—",
+        notNull: false,
+        unique: false,
+        auto: false,
+        default: null,
+        comment: null,
+        pk: !!fl.pk,
+        fk: !!fl.fk
+      };
+      columns.push(col);
+      if (fl.pk) pkCols.push(colName);
+      for (const g of fl.uniqueGroups){
+        if (!uniqueGroups.has(g)) uniqueGroups.set(g, []);
+        uniqueGroups.get(g).push(colName);
+      }
+
+      rowInfoByRowId.set(rowId, { table:t.name, column:colName, flags:fl });
+    }
+
+    const indexes = [];
+    for (const [g, cols] of uniqueGroups){
+      if (cols.length === 1){
+        const c = columns.find(x=>x.name===cols[0]);
+        if (c) c.unique = true;
+      } else if (cols.length > 1){
+        indexes.push({ name:g, columns:[...cols], unique:true });
+      }
+    }
+
+    model.tables[t.name] = {
+      columns,
+      primaryKey: pkCols,
+      unique: columns.filter(c=>c.unique).map(c=>c.name),
+      checks: [],
+      indexes,
+      foreignKeys: []
+    };
+  }
+
+  // Рёбра (связи). В вашем файле — между строками (row cells).
+  for (const e of cells.filter(x=>getAttr(x,"edge")==="1")){
+    const src = getAttr(e,"source"), trg = getAttr(e,"target");
+    if (!src || !trg) continue;
+    const sInfo = rowInfoByRowId.get(src);
+    const tInfo = rowInfoByRowId.get(trg);
+    if (!sInfo || !tInfo) continue;
+
+    const style = getAttr(e,"style","");
+    const startToken = (style.match(/startArrow=([^;]+)/)||[])[1] || "";
+    const endToken   = (style.match(/endArrow=([^;]+)/)||[])[1] || "";
+
+    const normCard = (token) => {
+      const t = (token||"").toLowerCase();
+      // поддержка ERone / ERmany / ERoneToMany / ERmandOne
+      const hasOne = t.includes("one");
+      const hasMany = t.includes("many") || t.includes("mand"); // "ERmandOne" встречается в draw.io
+      if (hasMany) return "N";
+      if (hasOne) return "1";
+      return "?";
+    };
+    const startCard = normCard(startToken);
+    const endCard   = normCard(endToken);
+    const cardinality = `${startCard}:${endCard}`;
+
+    // Определяем, какая сторона — FK
+    let fkSide = null, pkSide = null;
+    if (sInfo.flags.fk && !tInfo.flags.fk) { fkSide = sInfo; pkSide = tInfo; }
+    else if (tInfo.flags.fk && !sInfo.flags.fk) { fkSide = tInfo; pkSide = sInfo; }
+    else {
+      const sLooksFk = /_id$/.test(sInfo.column);
+      const tLooksFk = /_id$/.test(tInfo.column);
+      if (sLooksFk && !tLooksFk) { fkSide = sInfo; pkSide = tInfo; }
+      else if (tLooksFk && !sLooksFk) { fkSide = tInfo; pkSide = sInfo; }
+      else continue; // не гадаем
+    }
+
+    const fkTbl = model.tables[fkSide.table];
+    if (fkTbl){
+      const exists = fkTbl.foreignKeys.some(x => x.column===fkSide.column && x.refTable===pkSide.table && x.refColumn===pkSide.column);
+      if (!exists){
+        fkTbl.foreignKeys.push({ column: fkSide.column, refTable: pkSide.table, refColumn: pkSide.column });
+      }
+    }
+
+    model.relationships.push({
+      from: `${fkSide.table}.${fkSide.column}`,
+      to: `${pkSide.table}.${pkSide.column}`,
+      type: cardinality,
+      via: "edge(FK)"
+    });
+  }
+
+  return model;
+}
+
+function modelToText(model){
+  const out = [];
+  const tnames = Object.keys(model.tables).sort((a,b)=>a.localeCompare(b));
+  for (const t of tnames){
+    const tbl = model.tables[t];
+    out.push(`Таблица: ${t}`);
+    out.push(`  Столбцы:`);
+    for (const c of tbl.columns){
+      const flags = [];
+      if (c.pk) flags.push("PK");
+      if (c.unique) flags.push("UNIQUE");
+      out.push(`    - ${c.name}: ${c.type}${flags.length ? ", "+flags.join(", ") : ""}`);
+    }
+    if (tbl.primaryKey.length) out.push(`  Первичный ключ: (${tbl.primaryKey.join(", ")})`);
+    if (tbl.indexes.length){
+      out.push(`  Индексы:`);
+      for (const ix of tbl.indexes) out.push(`    - ${ix.name}: (${ix.columns.join(", ")}) UNIQUE`);
+    }
+    if (tbl.foreignKeys.length){
+      out.push(`  Внешние ключи:`);
+      for (const fk of tbl.foreignKeys) out.push(`    - ${fk.column} → ${fk.refTable}.${fk.refColumn}`);
+    }
+    out.push("");
+  }
+  if (model.relationships.length){
+    out.push("Связи:");
+    for (const r of model.relationships) out.push(`  - ${r.from} → ${r.to} [${r.type}]`);
+  }
+  return out.join("\n").trim();
+}
+
+/* UI */
+function run(){
+  const xml = document.getElementById("xmlInput").value;
+  const out = document.getElementById("output");
+  try{
+    const model = parseDrawio(xml);
+    out.classList.remove("error");
+    out.textContent = modelToText(model);
+  }catch(e){
+    out.classList.add("error");
+    out.textContent = "Ошибка: " + (e?.message || e);
+  }
+}
+
+function pasteSample(){
+  const s = `<?xml version="1.0"?><mxfile><diagram><mxGraphModel><root>
+  <mxCell id="0"/><mxCell id="1" parent="0"/>
+  <mxCell id="T" value="example" style="shape=table;startSize=20;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="220" height="120" as="geometry"/></mxCell>
+  <mxCell id="R1" style="shape=tableRow;" vertex="1" parent="T"><mxGeometry y="20" width="220" height="30" as="geometry"/></mxCell>
+  <mxCell id="R1f" value="PK" style="shape=partialRectangle;" vertex="1" parent="R1"><mxGeometry width="60" height="30" as="geometry"/></mxCell>
+  <mxCell id="R1n" value="id" style="shape=partialRectangle;" vertex="1" parent="R1"><mxGeometry x="60" width="160" height="30" as="geometry"/></mxCell>
+  <mxCell id="R2" style="shape=tableRow;" vertex="1" parent="T"><mxGeometry y="50" width="220" height="30" as="geometry"/></mxCell>
+  <mxCell id="R2f" value="UN1" style="shape=partialRectangle;" vertex="1" parent="R2"><mxGeometry width="60" height="30" as="geometry"/></mxCell>
+  <mxCell id="R2n" value="code" style="shape=partialRectangle;" vertex="1" parent="R2"><mxGeometry x="60" width="160" height="30" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>`;
+  document.getElementById("xmlInput").value = s;
+  run();
+}
+</script>
+</body>
+</html>
