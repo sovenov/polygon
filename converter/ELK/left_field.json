@@ -1,0 +1,321 @@
+{
+    "took": 4,
+    "timed_out": false,
+    "_shards": {
+        "total": 1,
+        "successful": 1,
+        "skipped": 0,
+        "failed": 0
+    },
+    "hits": {
+        "total": {
+            "value": 2,
+            "relation": "eq"
+        },
+        "max_score": null,
+        "hits": [
+            {
+                "_index": "instruments",
+                "_type": "_doc",
+                "_id": "144950",
+                "_score": null,
+                "_source": {
+                    "historyScore": 9.2,
+                    "ps": 1.6,
+                    "valToday": 2.745979607E9,
+                    "dvdProfitLtm": 10.8336702,
+                    "regCode": "10301481B",
+                    "complexProduct": "0",
+                    "industryId": 34,
+                    "high": 300.99,
+                    "volToday": 9155482.0,
+                    "isLiquidBoard": true,
+                    "price": 300.78,
+                    "nextReportDate": "2026-02-25T00:00:00",
+                    "isStruct": false,
+                    "sectorId": 55,
+                    "hellType": "Акции обыкновенные",
+                    "assetCode": "RU0009029540",
+                    "dailyPiPercent": 0.5415162454873647,
+                    "forecastConsensus": "Buy",
+                    "universalMarketCode": "MOEX_TQ_RUB",
+                    "riskCurrency": "RUR",
+                    "displayGroup": 101,
+                    "stabilityScore": 8.9,
+                    "sectorName": "Финансы",
+                    "enabledMarginPaperGroupsId": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        16
+                    ],
+                    "fundamentalsScore": 7.9,
+                    "boardName": "МБ ЦК",
+                    "idfi": 144950,
+                    "allowNonQualInvest": true,
+                    "adfrontType": "обыкновенные",
+                    "totalAssetScore": 8.0,
+                    "isEnabled": true,
+                    "name": "Сбербанк",
+                    "ntProfitMargin": 6.02,
+                    "countryName": "Россия",
+                    "adfrontGroup": "Stocks",
+                    "exTime": "2026-01-16T12:24:18",
+                    "nameObject": "Сбербанк",
+                    "faceUunit": 174368,
+                    "mktCap": 6629712.06,
+                    "roa": 2.8,
+                    "sessionDate": "2026-01-16",
+                    "regionName": "Россия",
+                    "emitentName": "ПАО \"Сбербанк России\"",
+                    "actId": 13620,
+                    "roe": 23.0,
+                    "emCode": "SBER",
+                    "lot": 1,
+                    "isTradeAccess": false,
+                    "potentialScore": 6.9,
+                    "emShortName": "ПАО \"Сбербанк России\"",
+                    "nominal": 3.0,
+                    "low": 298.9,
+                    "yield": 0.0,
+                    "debtToEbitda": 2.07,
+                    "currency": "RUB",
+                    "turnover": 2.745979607E9,
+                    "cupSize": 0.0,
+                    "expared": false,
+                    "objectId": 285270,
+                    "industryName": "Банковские услуги",
+                    "ticker": "SBER",
+                    "dividendsScore": 7.0,
+                    "isDefaultUniversalExchange": true,
+                    "ebitda": 1619400.0,
+                    "assetSynonyms": [
+                        "тракторист",
+                        "sbrr",
+                        "sbr",
+                        "sbef",
+                        "sbeg",
+                        "sbed",
+                        "sbe",
+                        "ссбербанк",
+                        "сербанк",
+                        "себрбанк",
+                        "сбребанк",
+                        "сбрбанк",
+                        "сберрбанк",
+                        "сбербнк",
+                        "сбербнак",
+                        "сберббанк",
+                        "сбербаннк",
+                        "сбербанкк",
+                        "сбербан",
+                        "сбербак",
+                        "сбербаанк",
+                        "сберанк",
+                        "сберабнк",
+                        "сбеербанк",
+                        "сбебранк",
+                        "сбебанк",
+                        "сббербанк",
+                        "бсербанк",
+                        "бербанк",
+                        "ссбер",
+                        "сер",
+                        "себр",
+                        "сбр",
+                        "сберр",
+                        "сбеер",
+                        "сбе",
+                        "сббер",
+                        "бсер",
+                        "бер"
+                    ],
+                    "emitent": 284396,
+                    "hellGroup": "Акции",
+                    "idTradePeriodStatus": 6,
+                    "emitentId": 14,
+                    "debtToEquity": 7.48,
+                    "lastPriceDate": "2026-01-16",
+                    "pb": 0.88,
+                    "enabledShortPaperGroupsId": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        16
+                    ],
+                    "pe": 4.0,
+                    "forecastPotential": 0.317,
+                    "universalExchangeId": 1,
+                    "category": 0,
+                    "cupPeriod": 0,
+                    "isin": "RU0009029540",
+                    "nextDvdProfit": 10.8336702,
+                    "dateFixCalc": "2025-07-18",
+                    "updatedDateTime": "2026-01-16T07:00:00.230"
+                },
+                "sort": [
+                    2.745979607E9
+                ]
+            },
+            {
+                "_index": "instruments",
+                "_type": "_doc",
+                "_id": "144948",
+                "_score": null,
+                "_source": {
+                    "historyScore": 9.1,
+                    "ps": 1.6,
+                    "valToday": 1.26819631E8,
+                    "dvdProfitLtm": 10.94049301,
+                    "regCode": "20301481B",
+                    "complexProduct": "0",
+                    "industryId": 34,
+                    "high": 299.94,
+                    "volToday": 424004.0,
+                    "isLiquidBoard": true,
+                    "price": 299.86,
+                    "nextReportDate": "2026-02-25T00:00:00",
+                    "isStruct": false,
+                    "sectorId": 55,
+                    "hellType": "Акции привилегированные",
+                    "assetCode": "RU0009029557",
+                    "dailyPiPercent": 0.6039052539757096,
+                    "forecastConsensus": "Buy",
+                    "universalMarketCode": "MOEX_TQ_RUB",
+                    "riskCurrency": "RUR",
+                    "displayGroup": 101,
+                    "stabilityScore": 8.9,
+                    "sectorName": "Финансы",
+                    "enabledMarginPaperGroupsId": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        16
+                    ],
+                    "fundamentalsScore": 7.9,
+                    "boardName": "МБ ЦК",
+                    "idfi": 144948,
+                    "allowNonQualInvest": true,
+                    "adfrontType": "привилегированные",
+                    "totalAssetScore": 7.9,
+                    "isEnabled": true,
+                    "name": "Сбербанк ап",
+                    "ntProfitMargin": 6.02,
+                    "countryName": "Россия",
+                    "adfrontGroup": "Stocks",
+                    "exTime": "2026-01-16T12:23:52",
+                    "nameObject": "Сбербанк ап",
+                    "faceUunit": 174368,
+                    "mktCap": 6629712.06,
+                    "roa": 2.8,
+                    "sessionDate": "2026-01-16",
+                    "regionName": "Россия",
+                    "emitentName": "ПАО \"Сбербанк России\"",
+                    "actId": 13634,
+                    "roe": 23.0,
+                    "emCode": "SBER",
+                    "lot": 1,
+                    "isTradeAccess": false,
+                    "potentialScore": 6.9,
+                    "emShortName": "ПАО \"Сбербанк России\"",
+                    "nominal": 3.0,
+                    "low": 298.06,
+                    "yield": 0.0,
+                    "debtToEbitda": 2.07,
+                    "currency": "RUB",
+                    "turnover": 1.26819631E8,
+                    "cupSize": 0.0,
+                    "expared": false,
+                    "objectId": 284995,
+                    "industryName": "Банковские услуги",
+                    "ticker": "SBERP",
+                    "dividendsScore": 7.0,
+                    "isDefaultUniversalExchange": true,
+                    "ebitda": 1619400.0,
+                    "emitent": 653113,
+                    "hellGroup": "Акции",
+                    "idTradePeriodStatus": 6,
+                    "emitentId": 14,
+                    "debtToEquity": 7.48,
+                    "lastPriceDate": "2026-01-16",
+                    "pb": 0.88,
+                    "enabledShortPaperGroupsId": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        16
+                    ],
+                    "pe": 4.0,
+                    "forecastPotential": 0.3621,
+                    "universalExchangeId": 1,
+                    "category": 0,
+                    "cupPeriod": 0,
+                    "isin": "RU0009029557",
+                    "nextDvdProfit": 10.94049301,
+                    "dateFixCalc": "2025-07-18",
+                    "updatedDateTime": "2026-01-16T07:00:00.230"
+                },
+                "sort": [
+                    1.26819631E8
+                ]
+            }
+        ]
+    },
+    "query": {
+        "id": "multipurpose_template",
+        "params": {
+            "from": 0,
+            "size": 100,
+            "sort": {
+                "turnover": {
+                    "order": "desc"
+                }
+            },
+            "clauses": [
+                {
+                    "match": {
+                        "adfrontGroup": "Stocks"
+                    }
+                },
+                {
+                    "query_string": {
+                        "fields": [
+                            "name",
+                            "ticker",
+                            "assetSynonyms",
+                            "assetCode",
+                            "isin"
+                        ],
+                        "query": "сбербанк"
+                    }
+                },
+                {
+                    "range": {
+                        "lastPriceDate": {
+                            "gte": "2026-01-09"
+                        }
+                    }
+                },
+                {
+                    "match": {
+                        "isLiquidBoard": "true"
+                    }
+                },
+                {
+                    "match": {
+                        "isDefaultUniversalExchange": "true"
+                    }
+                },
+                {
+                    "match": {
+                        "isEnabled": "true"
+                    }
+                }
+            ]
+        }
+    }
+}
