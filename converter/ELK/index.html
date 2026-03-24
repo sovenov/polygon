@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>JSON Processor Offline</title>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f4f9;
+            overflow: hidden;
+        }
+
+        /* Шапка */
+        .controls {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .convert-btn {
+            padding: 10px 35px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+            text-transform: uppercase;
+        }
+
+        .convert-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Сетка */
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+            gap: 5px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #ebebeb;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .header-row label {
+            font-weight: bold;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .copy-btn {
+            padding: 2px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            background: #fff;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+        }
+
+        .copy-btn:hover { background: #f0f0f0; }
+
+        /* Редактор с подсветкой */
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        textarea, .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: none;
+            outline: none;
+        }
+
+        textarea {
+            background: transparent !important;
+            color: transparent !important;
+            caret-color: #000;
+            z-index: 2;
+            resize: none;
+        }
+
+        .backdrop {
+            z-index: 1;
+            background: #fff;
+            color: #333;
+            overflow-y: auto;
+            pointer-events: none;
+        }
+
+        /* Цвета подсветки */
+        .json-key    { color: #a52a2a; font-weight: bold; } /* Коричневый */
+        .json-string { color: #228b22; } /* Зеленый */
+        .json-num    { color: #0000ff; } /* Синий */
+        .json-bool   { color: #ff8c00; } /* Оранжевый */
+        .json-null   { color: #808080; } /* Серый */
+
+        .error-overlay {
+            color: red;
+            font-size: 11px;
+            padding: 2px 10px;
+            background: #fff0f0;
+            border-top: 1px solid #ffdada;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="convert-btn" onclick="processConvert()">Конвертировать</button>
+    </div>
+
+    <div class="container">
+        <div class="column">
+            <div class="header-row">
+                <label>Исходный JSON</label>
+                <button class="copy-btn" onclick="copy('sourceIdx')">Копировать</button>
+            </div>
+            <div class="editor-container">
+                <div id="sourceView" class="backdrop"></div>
+                <textarea id="sourceIdx" spellcheck="false" oninput="handleInput('sourceIdx', 'sourceView')" onscroll="syncScroll('sourceIdx', 'sourceView')"></textarea>
+            </div>
+            <div id="errSource" class="error-overlay">Ошибка в JSON</div>
+        </div>
+
+        <div class="column">
+            <div class="header-row">
+                <label>Список полей</label>
+                <button class="copy-btn" onclick="copy('filterIdx')">Копировать</button>
+            </div>
+            <div class="editor-container">
+                <div id="filterView" class="backdrop"></div>
+                <textarea id="filterIdx" spellcheck="false" oninput="handleInput('filterIdx', 'filterView')" onscroll="syncScroll('filterIdx', 'filterView')"></textarea>
+            </div>
+            <div id="errFilter" class="error-overlay">Массив не найден</div>
+        </div>
+
+        <div class="column">
+            <div class="header-row">
+                <label>Результат</label>
+                <button class="copy-btn" onclick="copy('resultIdx')">Копировать</button>
+            </div>
+            <div class="editor-container">
+                <div id="resultView" class="backdrop"></div>
+                <textarea id="resultIdx" readonly onscroll="syncScroll('resultIdx', 'resultView')"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Отключение кеширования через перезагрузку при навигации назад
+        if (window.performance && window.performance.navigation.type === 2) {
+            location.reload(true);
+        }
+
+        // --- Подсветка синтаксиса (Native Regex) ---
+        function highlightJson(json) {
+            if (typeof json !== 'string') json = JSON.stringify(json, null, 4) || "";
+            
+            // Экранирование HTML
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-num';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-bool';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function handleInput(areaId, viewId) {
+            const area = document.getElementById(areaId);
+            const view = document.getElementById(viewId);
+            view.innerHTML = highlightJson(area.value) + (area.value.endsWith('\n') ? ' ' : '');
+        }
+
+        function syncScroll(areaId, viewId) {
+            const area = document.getElementById(areaId);
+            const view = document.getElementById(viewId);
+            view.scrollTop = area.scrollTop;
+            view.scrollLeft = area.scrollLeft;
+        }
+
+        function copy(id) {
+            const txt = document.getElementById(id);
+            if (!txt.value) return;
+            navigator.clipboard.writeText(txt.value);
+            const b = event.target;
+            b.innerText = 'Сделано';
+            setTimeout(() => b.innerText = 'Копировать', 1000);
+        }
+
+        // --- Логика фильтрации ---
+        function extractFilterArray(obj) {
+            if (Array.isArray(obj)) return obj;
+            for (let k in obj) if (Array.isArray(obj[k])) return obj[k];
+            return null;
+        }
+
+        function filterNode(data, allowed) {
+            if (Array.isArray(data)) {
+                const arr = data.map(item => filterNode(item, allowed)).filter(item => item !== undefined);
+                return arr.length > 0 ? arr : undefined;
+            } else if (typeof data === 'object' && data !== null) {
+                const result = {};
+                let hasData = false;
+                for (let key in data) {
+                    if (allowed.includes(key)) {
+                        result[key] = data[key]; // Сохраняем все поле, если оно в списке
+                        hasData = true;
+                    } else {
+                        const sub = filterNode(data[key], allowed);
+                        if (sub !== undefined) {
+                            result[key] = sub; // Сохраняем путь до вложенного совпадения
+                            hasData = true;
+                        }
+                    }
+                }
+                return hasData ? result : undefined;
+            }
+            return undefined;
+        }
+
+        function processConvert() {
+            const srcArea = document.getElementById('sourceIdx');
+            const fltArea = document.getElementById('filterIdx');
+            const resArea = document.getElementById('resultIdx');
+            const resView = document.getElementById('resultView');
+
+            document.getElementById('errSource').style.display = 'none';
+            document.getElementById('errFilter').style.display = 'none';
+
+            try {
+                const srcJson = JSON.parse(srcArea.value);
+                let fltData;
+                try {
+                    fltData = JSON.parse(fltArea.value);
+                } catch(e) {
+                    document.getElementById('errFilter').style.display = 'block';
+                    return;
+                }
+
+                const keys = extractFilterArray(fltData);
+                if (!keys) {
+                    document.getElementById('errFilter').innerText = "Массив ключей не найден";
+                    document.getElementById('errFilter').style.display = 'block';
+                    return;
+                }
+
+                const filtered = filterNode(srcJson, keys) || {};
+                const finalStr = JSON.stringify(filtered, null, 4);
+                
+                resArea.value = finalStr;
+                resView.innerHTML = highlightJson(finalStr);
+
+            } catch (e) {
+                document.getElementById('errSource').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
