@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>JSON Portfolio Converter.</title>
+    <title>JSON Portfolio Converter</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f0f2f5; color: #1c1e21; }
         .main-layout { display: flex; gap: 20px; height: 600px; margin-bottom: 20px; }
@@ -18,6 +18,7 @@
         button { padding: 12px 50px; background: #1877f2; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3); }
         button:hover { background: #166fe5; }
         
+        /* Syntax Highlighting */
         .json-key { color: #881391; font-weight: bold; }
         .json-string { color: #1a1aa6; }
         .json-number { color: #1c00cf; }
@@ -26,10 +27,13 @@
 
         .error { color: #fa3e3e; text-align: center; margin-bottom: 10px; font-size: 14px; height: 20px; font-weight: bold; }
 
-        .description { background: #fff; padding: 25px; border-radius: 12px; border: 1px solid #dddfe2; line-height: 1.6; }
-        .description h3 { margin-top: 0; color: #1c1e21; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 15px; }
-        .description ul { padding-left: 20px; margin: 0; }
-        .group-title { font-weight: bold; margin-top: 15px; display: block; color: #1877f2; }
+        /* Description block */
+        .description { background: #fff; padding: 30px; border-radius: 12px; border: 1px solid #dddfe2; line-height: 1.6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .description h3 { margin-top: 0; color: #1c1e21; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 20px; }
+        .description ul { padding-left: 20px; margin: 0; list-style-type: square; }
+        .description li { margin-bottom: 8px; }
+        .description code { background: #f0f2f5; padding: 2px 5px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 0.95em; color: #c41e3a; }
+        .group-title { font-weight: bold; margin-top: 20px; margin-bottom: 10px; display: block; color: #1877f2; font-size: 1.1em; border-left: 4px solid #1877f2; padding-left: 10px; }
     </style>
 </head>
 <body>
@@ -43,7 +47,7 @@
     <div class="main-layout">
         <div class="column">
             <label>Исходный JSON</label>
-            <textarea id="inputJson" placeholder="Вставьте JSON..."></textarea>
+            <textarea id="inputJson" placeholder="Вставьте исходный JSON здесь..."></textarea>
         </div>
 
         <div class="column">
@@ -53,44 +57,65 @@
     </div>
 
     <div class="description">
-        <h3>Описание логики и полей</h3>
+        <h3>Справочник полей результата</h3>
         
-        <span class="group-title">🆔 Идентификация инструментов</span>
+        <span class="group-title">🏦 Объект Broker (Брокерские данные)</span>
         <ul>
-            <li>Если у актива есть <code>isin</code> — выводится только <code>isin</code>.</li>
-            <li>Если <code>isin</code> отсутствует, но есть <code>assetCode</code> — выводится <code>assetCode</code>.</li>
-            <li>Поле <code>actId</code> выводится всегда (если оно есть в исходных данных).</li>
+            <li><code>total</code> — Сводные данные по всем брокерским счетам, включая ИИС и Копилки.</li>
+            <li><code>moneyRub</code> — Общая рыночная стоимость активов в рублях (округлено до сотых вниз).</li>
+            <li><code>dailyPlPercent</code> — Дневная доходность в процентах (целое число, округление вниз).</li>
+            <li><code>nplPercent</code> — Общая доходность за всё время в процентах (целое число, округление вниз).</li>
+            <li><code>stocksTotalCount</code> — Общее количество единиц ценных бумаг (штук/паев) во всех портфелях.</li>
+            <li><code>stocksByCompany</code> — Список инструментов, агрегированных по тикеру со всех счетов.</li>
+            <li><code>accounts[]</code> — Список индивидуальных счетов.</li>
         </ul>
 
-        <span class="group-title">🏦 broker (Счета и бумаги)</span>
+        <span class="group-title">💳 Поля счета (внутри accounts)</span>
         <ul>
-            <li><code>moneyRub</code> — доступные наличные на счету (округлено до сотых вниз).</li>
-            <li><code>stocks[]</code> — список ценных бумаг (акции <code>1</code> и фонды <code>61</code>).</li>
-            <li><code>isIis</code> / <code>isMicroInvest</code> — флаги типа счета.</li>
+            <li><code>accountId</code> — Уникальный номер счета.</li>
+            <li><code>isIis</code> — Флаг Индивидуального Инвестиционного Счета (true/false).</li>
+            <li><code>isMicroInvest</code> — Флаг Инвест-копилки (true/false).</li>
+            <li><code>moneyRub</code> — Наличные средства на данном конкретном счету.</li>
+            <li><code>stocks[]</code> — Список позиций (ценных бумаг), хранящихся на этом счете.</li>
         </ul>
 
-        <span class="group-title">💡 Технические правила</span>
+        <span class="group-title">📈 Поля ценных бумаг (внутри stocks)</span>
         <ul>
-            <li><b>Округление:</b> все суммы в рублях обрезаются до 2 знаков после запятой (Math.floor).</li>
-            <li><b>Кэш:</b> страница защищена от кэширования мета-тегами и JS-скриптом.</li>
+            <li><code>actId</code> — Системный идентификатор актива.</li>
+            <li><code>ticker</code> — Биржевой тикер (например, SBER, VTBR).</li>
+            <li><code>name</code> — Название компании или фонда.</li>
+            <li><code>isin</code> — Международный код ценной бумаги (выводится в приоритете).</li>
+            <li><code>assetCode</code> — Внутренний код (выводится, только если нет ISIN).</li>
+            <li><code>quantity</code> — Количество бумаг в позиции.</li>
+            <li><code>amountRub</code> — Текущая стоимость позиции в рублях (округлено до сотых вниз).</li>
+            <li><code>maturityDate</code> — Дата погашения (для облигаций и фондов с датой завершения).</li>
+        </ul>
+
+        <span class="group-title">🤝 Объект Partners (Партнерские продукты)</span>
+        <ul>
+            <li><code>total.moneyRub</code> — Стоимость всех партнерских активов (ЦФА и др.).</li>
+            <li><code>productsByName</code> — Агрегированный список продуктов по названиям.</li>
+            <li><code>accounts[].partnerName</code> — Название платформы-партнера.</li>
+            <li><code>products[]</code> — Список конкретных инструментов у партнера.</li>
         </ul>
     </div>
 
 <script>
-/** Запрет кэширования страницы */
+/** Запрет кэширования bfcache */
 window.onpageshow = function(event) {
     if (event.persisted) window.location.reload();
 };
 
-/** Округление копеек в меньшую сторону */
+/** Округление денег до сотых в меньшую сторону */
 const roundMoney = (val) => {
     if (val == null) return 0;
     return Math.floor(val * 100) / 100;
 };
 
+/** Округление процентов до целого в меньшую сторону */
 const floorPct = (val) => (val != null ? Math.floor(val) : null);
 
-/** Подсветка синтаксиса */
+/** Подсветка синтаксиса JSON */
 function syntaxHighlight(json) {
     if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -105,6 +130,7 @@ function syntaxHighlight(json) {
     });
 }
 
+/** Получение рублевого баланса */
 const getRub = (obj) => {
     if (!obj) return 0;
     let val = 0;
@@ -127,6 +153,7 @@ function processData() {
         let stocksGlobal = [];
         let brokerAccounts = [];
 
+        // Логика Broker
         if (Array.isArray(broker.accounts)) {
             broker.accounts.forEach(acc => {
                 let accPapers = [];
@@ -140,8 +167,8 @@ function processData() {
                     sub.positions?.forEach(pos => {
                         if (pos.isMoney) accCash += pos.amount;
 
-                        // Акции (1) или БПИФ (61)
-                        if (pos.objectTypeId === 1 || pos.objectTypeId === 61) {
+                        // Фильтр: Акции(1), ОФЗ(7), Облигации(8), БПИФ(61)
+                        if ([1, 7, 8, 61].includes(pos.objectTypeId)) {
                             const s = {
                                 actId: pos.actId || null,
                                 ticker: pos.ticker,
@@ -149,15 +176,13 @@ function processData() {
                                 quantity: pos.quantity,
                                 amountRub: roundMoney(pos.amount),
                                 dailyPlPercent: floorPct(pos.dailyPlPercent),
-                                nplPercent: floorPct(pos.nplPercent)
+                                nplPercent: floorPct(pos.nplPercent),
+                                maturityDate: pos.maturityDate || null
                             };
 
-                            // Приоритетная логика идентификатора
-                            if (pos.isin) {
-                                s.isin = pos.isin;
-                            } else if (pos.assetCode) {
-                                s.assetCode = pos.assetCode;
-                            }
+                            // Приоритет ISIN
+                            if (pos.isin) s.isin = pos.isin;
+                            else if (pos.assetCode) s.assetCode = pos.assetCode;
 
                             accPapers.push(s);
                             accQtyTotal += pos.quantity;
@@ -186,7 +211,7 @@ function processData() {
             });
         }
 
-        // Обработка партнеров
+        // Логика Partners
         let partnerAccounts = [];
         let pTotalGlobal = [];
         if (partners && partners.accounts) {
@@ -194,7 +219,11 @@ function processData() {
                 let accP = [];
                 acc.contracts?.forEach(con => {
                     con.positions?.forEach(pos => {
-                        const p = { name: pos.productName, quantity: pos.quantity, amountRub: roundMoney(pos.amount) };
+                        const p = { 
+                            name: pos.productName, 
+                            quantity: pos.quantity, 
+                            amountRub: roundMoney(pos.amount) 
+                        };
                         accP.push(p);
                         let ex = pTotalGlobal.find(x => x.name === p.name);
                         if (ex) { 
@@ -206,8 +235,10 @@ function processData() {
                     });
                 });
                 partnerAccounts.push({
-                    accountId: acc.accountId, partnerName: acc.partnerName,
-                    moneyRub: getRub(acc.total), products: accP
+                    accountId: acc.accountId, 
+                    partnerName: acc.partnerName,
+                    moneyRub: getRub(acc.total), 
+                    products: accP
                 });
             });
         }
