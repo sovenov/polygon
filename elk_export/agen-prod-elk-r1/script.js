@@ -1,5 +1,4 @@
-(async function() {
-    // Находим контейнер, который отвечает за скролл в таблице Kibana
+window.export_elk = async function() {
     const scrollContainer = document.querySelector('.euiDataGrid__virtualized');
     
     if (!scrollContainer) {
@@ -11,16 +10,24 @@
     let previousScrollTop = -1;
     let unchangedScrollCount = 0;
 
+    // Создаем плашку-индикатор статуса
+    let statusDiv = document.getElementById('elk-export-status');
+    if (!statusDiv) {
+        statusDiv = document.createElement('div');
+        statusDiv.id = 'elk-export-status';
+        statusDiv.style.cssText = "position:fixed; bottom:20px; right:20px; z-index:9999; background:#222; color:#0f0; padding:10px 15px; border-radius:4px; font-family:monospace; font-size:14px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);";
+        document.body.appendChild(statusDiv);
+    }
+    statusDiv.style.display = 'block';
+    statusDiv.innerText = "Инициализация...";
+
     console.log("Начинаю сбор логов... Не трогай скролл на странице.");
 
-    // Возвращаемся в самое начало перед стартом
     scrollContainer.scrollTop = 0;
     await new Promise(r => setTimeout(r, 1000));
 
     while (true) {
-        // Собираем текущие видимые строки
         const rows = document.querySelectorAll('.euiDataGridRow');
-        let parsedInThisTick = 0;
 
         rows.forEach(row => {
             const record = {};
@@ -35,40 +42,48 @@
                 });
                 
                 if (Object.keys(record).length > 0) {
-                    // Используем _id для дедупликации строк при скролле
                     const uniqueId = record['_id'] || JSON.stringify(record);
                     allLogs.set(uniqueId, record);
-                    parsedInThisTick++;
                 }
             }
         });
 
-        // Проверяем, сдвинулся ли скролл с прошлого шага
+        statusDiv.innerText = `Собрано уникальных строк: ${allLogs.size}...`;
+
         if (scrollContainer.scrollTop === previousScrollTop) {
             unchangedScrollCount++;
-            // Если скролл не меняется 3 итерации подряд — мы достигли конца
             if (unchangedScrollCount >= 3) {
-                break;
+                break; // Дошли до конца
             }
         } else {
             unchangedScrollCount = 0;
         }
 
         previousScrollTop = scrollContainer.scrollTop;
-
-        // Прокручиваем вниз на высоту видимой области
         scrollContainer.scrollTop += scrollContainer.clientHeight;
         
-        // Ждем пока Kibana отрендерит новые строки в DOM. 
-        // Если интернет или ПК медленные, увеличь задержку.
         await new Promise(r => setTimeout(r, 800)); 
     }
 
+    statusDiv.innerText = `Сбор завершен. Подготовка файла...`;
+
+    // Формируем JSON и скачиваем файл
     const data = Array.from(allLogs.values());
     const jsonResult = JSON.stringify(data, null, 2);
     
-    console.log(data);
-    copy(jsonResult);
+    const blob = new Blob([jsonResult], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kibana_logs_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
     
-    console.log(`Готово. Собрано уникальных логов: ${data.length}. JSON скопирован в буфер обмена.`);
-})();
+    console.log(data);
+    console.log(`Готово. Скачан файл с ${data.length} записями.`);
+
+    statusDiv.innerText = `Готово! Скачано ${data.length} строк.`;
+    setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+};
+
+console.log("Функция загружена. Для запуска введи в консоли: export_elk()");
