@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<!-- saved from url=(0042)https://sovenov.ru/polygon/invest/example/ -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Альфа-агент</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .mobile-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fff;
+            z-index: 10;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            margin-left: -8px;
+        }
+
+        .header-info {
+            flex-grow: 1;
+            text-align: center;
+            padding-right: 24px; 
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .header-status {
+            font-size: 13px;
+            color: #888;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .header-status span {
+            color: #e63946;
+            font-weight: bold;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex-grow: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #fff;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+            align-items: flex-end;
+            flex-direction: column;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #fff0f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-bottom: 20px;
+        }
+
+        .avatar svg {
+            width: 20px;
+            height: 20px;
+            fill: #e63946;
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.4;
+            max-width: 85%;
+        }
+
+        .ai-bubble {
+            background-color: #ffffff;
+            border: 1px solid #f0f0f0;
+            color: #1a1a1a;
+            border-bottom-left-radius: 4px;
+        }
+
+        .user-bubble {
+            background-color: #f2f3f5;
+            color: #1a1a1a;
+            border-bottom-right-radius: 4px;
+        }
+
+        .time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+            align-self: flex-start;
+        }
+
+        .user-time-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            align-self: flex-end;
+            margin-top: 4px;
+        }
+
+        /* Loader */
+        .loader-bubble {
+            background: linear-gradient(90deg, #ffe4e8 0%, #f4f5f7 100%);
+            padding: 8px 20px 8px 8px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            border: none;
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.05);
+        }
+
+        .loader-avatar-container {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            background-color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(230, 57, 70, 0.1);
+        }
+
+        .loader-avatar-container svg {
+            width: 22px;
+            height: 22px;
+            fill: #e63946;
+            animation: pulse-star 1s ease-in-out infinite alternate;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 48px;
+            height: 48px;
+            border: 2px solid transparent;
+            border-top-color: #e63946;
+            border-right-color: #ff8fa3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loader-text {
+            font-size: 15px;
+            color: #1a1a1a;
+        }
+
+        /* Input Area */
+        footer {
+            padding: 12px 16px;
+            background: #fff;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .clip-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .clip-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: #888;
+        }
+
+        .input-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 48px 12px 16px;
+            border-radius: 24px;
+            border: 1px solid #e0e0e0;
+            background-color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #ccc;
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 4px;
+            width: 32px;
+            height: 32px;
+            background-color: #cbd5e1;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .send-btn.active {
+            background-color: #e63946;
+        }
+
+        .send-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #fff;
+        }
+
+        /* Animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse-star {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="mobile-container">
+    <header>
+        <button class="back-btn">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="#1a1a1a"></path></svg>
+        </button>
+        <div class="header-info">
+            <div class="header-title">Альфа-агент</div>
+            <div class="header-status"><span>⚡</span> На связи</div>
+        </div>
+    </header>
+
+    <div class="chat-area" id="chat-area">
+        <div class="message-row">
+            <div class="avatar">
+                <svg viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"></path></svg>
+            </div>
+            <div>
+                <div class="bubble ai-bubble">рекомендацией</div>
+                <div class="time">18:29</div>
+            </div>
+        </div>
+
+        <div class="message-row user">
+            <div class="bubble user-bubble">Расскажи про стратегию тихая гавань</div>
+            <div class="user-time-container">
+                <div class="time" style="margin-top:0;">18:30</div>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="#999"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+            </div>
+        </div>
+    
+            <div class="message-row user">
+                <div class="bubble user-bubble">asf</div>
+                <div class="user-time-container">
+                    <div class="time" style="margin-top:0;">13:02</div>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="#999"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                </div>
+            </div>
+        
+            
+        
+            <div class="message-row">
+                <div class="avatar">
+                    <svg viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"></path></svg>
+                </div>
+                <div>
+                    <div class="bubble ai-bubble">К сожалению ваш запрос не связан с инвестициями (в запросе нет подстроки 'инвест')</div>
+                    <div class="time">13:02</div>
+                </div>
+            </div>
+        
+            <div class="message-row user">
+                <div class="bubble user-bubble">инвестиции</div>
+                <div class="user-time-container">
+                    <div class="time" style="margin-top:0;">13:02</div>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="#999"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>
+                </div>
+            </div>
+        
+            
+        
+            <div class="message-row">
+                <div class="avatar">
+                    <svg viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"></path></svg>
+                </div>
+                <div>
+                    <div class="bubble ai-bubble">Диверсификация портфеля — ключевой принцип успешного инвестора. Распределяйте активы по разным секторам.</div>
+                    <div class="time">13:02</div>
+                </div>
+            </div>
+        </div>
+
+    <footer>
+        <button class="clip-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+        </button>
+        <div class="input-container">
+            <input type="text" id="chat-input" placeholder="Сообщение" autocomplete="off">
+            <button class="send-btn" id="send-btn">
+                <svg viewBox="0 0 24 24"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"></path></svg>
+            </button>
+        </div>
+    </footer>
+</div>
+
+<script>
+    const chatArea = document.getElementById('chat-area');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    
+    let isAnalyzing = false;
+
+    const analysisPhrases = [
+        "Анализирую запрос...",
+        "Проверяю котировки акций...",
+        "Оцениваю риски...",
+        "Считаю дивиденды...",
+        "Изучаю макроэкономику...",
+        "Ищу защитные активы...",
+        "Анализирую облигации...",
+        "Сравниваю фонды...",
+        "Формирую портфель...",
+        "Подготавливаю ответ..."
+    ];
+
+    const investAnswers = [
+        "Инвестиции в облигации федерального займа (ОФЗ) считаются одним из самых надежных инструментов на рынке.",
+        "Диверсификация портфеля — ключевой принцип успешного инвестора. Распределяйте активы по разным секторам.",
+        "При выборе стратегии инвестирования важно учитывать ваш риск-профиль и горизонт инвестирования.",
+        "Акции роста могут принести высокую доходность, но они также подвержены более сильным колебаниям цены.",
+        "Регулярная ребалансировка портфеля помогает поддерживать заданный уровень риска.",
+        "ETF (биржевые фонды) — отличный способ получить широко диверсифицированный портфель с минимальными комиссиями.",
+        "Сложный процент — мощный инструмент для долгосрочного приумножения капитала при реинвестировании дивидендов.",
+        "Инвестирование в золото и недвижимость исторически рассматривается как защитный актив от инфляции.",
+        "Перед покупкой ценных бумаг компании всегда изучайте ее фундаментальные показатели и финансовую отчетность.",
+        "Стратегия усреднения стоимости (регулярная покупка активов на фиксированную сумму) снижает влияние рыночной волатильности."
+    ];
+
+    function getCurrentTime() {
+        const now = new Date();
+        return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    }
+
+    chatInput.addEventListener('input', () => {
+        if (chatInput.value.trim().length > 0) {
+            sendBtn.classList.add('active');
+        } else {
+            sendBtn.classList.remove('active');
+        }
+    });
+
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSend();
+        }
+    });
+
+    sendBtn.addEventListener('click', handleSend);
+
+    function handleSend() {
+        const text = chatInput.value.trim();
+        if (!text || isAnalyzing) return;
+
+        appendUserMessage(text);
+        chatInput.value = '';
+        sendBtn.classList.remove('active');
+        
+        startAnalysis(text);
+    }
+
+    function appendUserMessage(text) {
+        const time = getCurrentTime();
+        const msgHTML = `
+            <div class="message-row user">
+                <div class="bubble user-bubble">${text}</div>
+                <div class="user-time-container">
+                    <div class="time" style="margin-top:0;">${time}</div>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="#999"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+            </div>
+        `;
+        chatArea.insertAdjacentHTML('beforeend', msgHTML);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function startAnalysis(userText) {
+        isAnalyzing = true;
+        const isInvest = userText.toLowerCase().includes('инвест');
+        const duration = isInvest ? 10 : 3;
+
+        const loaderId = 'loader-' + Date.now();
+        const loaderHTML = `
+            <div class="message-row" id="${loaderId}">
+                <div class="loader-bubble">
+                    <div class="loader-avatar-container">
+                        <div class="spinner-ring"></div>
+                        <svg viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
+                    </div>
+                    <div class="loader-text" id="text-${loaderId}">Анализирую запрос...</div>
+                </div>
+            </div>
+        `;
+        chatArea.insertAdjacentHTML('beforeend', loaderHTML);
+        chatArea.scrollTop = chatArea.scrollHeight;
+
+        let secondsPassed = 0;
+        const textElement = document.getElementById(`text-${loaderId}`);
+
+        const interval = setInterval(() => {
+            secondsPassed++;
+            if (secondsPassed >= duration) {
+                clearInterval(interval);
+                finishAnalysis(loaderId, isInvest);
+            } else {
+                textElement.innerText = analysisPhrases[secondsPassed % analysisPhrases.length];
+            }
+        }, 1000);
+    }
+
+    function finishAnalysis(loaderId, isInvest) {
+        const loaderEl = document.getElementById(loaderId);
+        if (loaderEl) loaderEl.remove();
+
+        let responseText = "";
+        if (isInvest) {
+            responseText = investAnswers[Math.floor(Math.random() * investAnswers.length)];
+        } else {
+            responseText = "К сожалению ваш запрос не связан с инвестициями (в запросе нет подстроки 'инвест')";
+        }
+
+        const time = getCurrentTime();
+        const finalMsgHTML = `
+            <div class="message-row">
+                <div class="avatar">
+                    <svg viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
+                </div>
+                <div>
+                    <div class="bubble ai-bubble">${responseText}</div>
+                    <div class="time">${time}</div>
+                </div>
+            </div>
+        `;
+        chatArea.insertAdjacentHTML('beforeend', finalMsgHTML);
+        chatArea.scrollTop = chatArea.scrollHeight;
+        
+        isAnalyzing = false;
+    }
+</script>
+
+
+</body></html>
