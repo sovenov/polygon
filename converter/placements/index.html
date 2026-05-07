@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>JSON Placements Converter</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f0f2f5; color: #1c1e21; }
+        .main-layout { display: flex; gap: 20px; height: 600px; margin-bottom: 20px; }
+        .column { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: 600; font-size: 12px; color: #606770; text-transform: uppercase; letter-spacing: 1px; }
+        textarea, .code-output { flex: 1; font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; padding: 12px; border: 1px solid #dddfe2; border-radius: 8px; background: #fff; overflow: auto; min-width: 0; box-sizing: border-box; }
+        textarea { resize: none; word-break: break-word; overflow-wrap: anywhere; }
+        .code-output { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; border-color: #ccd0d5; }
+        .controls { display: flex; justify-content: center; margin-bottom: 20px; }
+        button { padding: 12px 50px; background: #1877f2; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3); }
+        button:hover { background: #166fe5; }
+
+        .json-key { color: #881391; font-weight: bold; }
+        .json-string { color: #1a1aa6; }
+        .json-number { color: #1c00cf; }
+        .json-boolean { color: #0000ff; }
+        .json-null { color: #808080; }
+
+        .error { color: #fa3e3e; text-align: center; margin-bottom: 10px; font-size: 14px; height: 20px; font-weight: bold; }
+
+        .description { background: #fff; padding: 25px; border-radius: 12px; border: 1px solid #dddfe2; line-height: 1.6; }
+        .description h3 { margin-top: 0; color: #1c1e21; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 15px; }
+        .description ul { padding-left: 20px; margin: 0; }
+        .description li { margin-bottom: 5px; }
+        .description code { background: #f0f2f5; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; color: #c41e3a; }
+        .group-title { font-weight: bold; margin-top: 15px; display: block; color: #1877f2; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button onclick="processData()">СКОНВЕРТИРОВАТЬ</button>
+    </div>
+
+    <div id="errorLog" class="error"></div>
+
+    <div class="main-layout">
+        <div class="column">
+            <label>Исходный JSON</label>
+            <textarea id="inputJson" placeholder="Вставьте JSON..."></textarea>
+        </div>
+
+        <div class="column">
+            <label>Результат</label>
+            <div id="outputJson" class="code-output"></div>
+        </div>
+    </div>
+
+    <div class="description">
+        <h3>Справочник полей результата</h3>
+
+        <span class="group-title">📋 Базовые поля размещения</span>
+        <ul>
+            <li><code>id</code> — Идентификатор размещения (берётся из <code>placementId</code>).</li>
+            <li><code>isin</code> — Международный код бумаги (ISIN).</li>
+            <li><code>ticker</code> — Биржевой тикер (берётся из <code>symbolObject</code>).</li>
+            <li><code>issuer</code> — Эмитент / название инструмента.</li>
+            <li><code>type</code> — Тип инструмента (берётся из <code>subPlacementType</code>: «Облигации», «ЦФА» и т.д.).</li>
+            <li><code>status</code> — Статус размещения (<code>active</code>, и т.п.).</li>
+        </ul>
+
+        <span class="group-title">📅 Блок dates (Даты)</span>
+        <ul>
+            <li><code>start</code> — Дата начала сбора заявок (<code>startDate</code>).</li>
+            <li><code>end</code> — Дата окончания сбора заявок (<code>endDate</code>).</li>
+            <li><code>maturity</code> — Дата погашения (<code>maturityDate</code>).</li>
+        </ul>
+
+        <span class="group-title">💰 Блок financials (Финансовые параметры)</span>
+        <ul>
+            <li><code>couponMin</code> — Минимальная купонная ставка, %.</li>
+            <li><code>couponMax</code> — Максимальная купонная ставка, %.</li>
+            <li><code>nominalValue</code> — Номинальная стоимость одной бумаги (из <code>nominal.value</code>).</li>
+            <li><code>nominalCurrency</code> — Валюта номинала (из <code>nominal.currency</code>).</li>
+            <li><code>minInvestment</code> — Минимальная сумма инвестирования (<code>minSumInvest</code>).</li>
+        </ul>
+
+        <span class="group-title">🚦 Блок restrictions (Ограничения)</span>
+        <ul>
+            <li><code>qualifiedOnly</code> — <code>true</code>, если доступно только квалифицированным инвесторам.</li>
+            <li><code>iiAAllowed</code> — <code>true</code>, если разрешено покупать на ИИС (<code>isAllowForIIA</code>).</li>
+        </ul>
+
+        <span class="group-title">📝 Прочее</span>
+        <ul>
+            <li><code>description</code> — Описание размещения (как в исходных данных).</li>
+            <li>Поля <code>nominal*</code>, <code>coupon*</code>, <code>minInvestment</code> могут быть <code>null</code>, если в источнике их нет (например, для ЦФА).</li>
+        </ul>
+    </div>
+
+<script>
+window.onpageshow = function(event) {
+    if (event.persisted) window.location.reload();
+};
+
+function syntaxHighlight(json) {
+    if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
+        var cls = 'json-number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) cls = 'json-key';
+            else cls = 'json-string';
+        } else if (/true|false/.test(match)) cls = 'json-boolean';
+        else if (/null/.test(match)) cls = 'json-null';
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+// Преобразование одного исходного размещения в целевую структуру
+function mapPlacement(p) {
+    const nominal = p.nominal || null;
+
+    return {
+        id: p.placementId ?? null,
+        isin: p.isin || null,
+        ticker: p.symbolObject || null,
+        issuer: p.issuer || null,
+        type: p.subPlacementType || null,
+        status: p.status || null,
+        dates: {
+            start: p.startDate || null,
+            end: p.endDate || null,
+            maturity: p.maturityDate || null
+        },
+        financials: {
+            couponMin: p.couponMin ?? null,
+            couponMax: p.couponMax ?? null,
+            nominalValue: nominal ? (nominal.value ?? null) : null,
+            nominalCurrency: nominal ? (nominal.currency ?? null) : null,
+            minInvestment: p.minSumInvest ?? null
+        },
+        restrictions: {
+            qualifiedOnly: p.qualifiedOnly ?? null,
+            iiAAllowed: p.isAllowForIIA ?? null
+        },
+        description: p.description ?? null
+    };
+}
+
+function processData() {
+    const input = document.getElementById('inputJson').value;
+    const output = document.getElementById('outputJson');
+    const error = document.getElementById('errorLog');
+    error.innerText = '';
+
+    try {
+        // Удаляем BOM, если он есть в начале файла
+        const cleaned = input.replace(/^\uFEFF/, '').trim();
+        const source = JSON.parse(cleaned);
+
+        const placementsSrc = Array.isArray(source.placements) ? source.placements : [];
+        const placements = placementsSrc.map(mapPlacement);
+
+        const finalOutput = { placements };
+
+        output.innerHTML = syntaxHighlight(finalOutput);
+    } catch (e) {
+        error.innerText = "Ошибка: " + e.message;
+    }
+}
+</script>
+</body>
+</html>
